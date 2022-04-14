@@ -28,6 +28,48 @@ def fill_holes_stack(image):
     fill_stack = Views.concatenate(2, fill_results)
     return fill_stack
 
+def get_kernel(key: str) -> np.ndarray:
+    kernels = {
+        "emboss" : np.array([
+            [-2, -1, 0],
+            [-1, 1, 1], 
+            [0, 1, 2]
+        ]),
+        "sharp" : np.array([
+            [0, -1, 0],
+            [-1, 5, -1],
+            [0, -1, 0]]),
+        "ridge" : np.array([
+            [-1, -1, -1],
+            [-1, 8, -1],
+            [-1, -1, -1]]),
+        "imagej" : np.array([
+            [-1, -1, -1, -1, -1],
+            [-1, -1, -1, -1, -1],
+            [-1, -1, 24, -1, -1], 
+            [-1, -1, -1, -1, -1],
+            [-1, -1, -1, -1, -1]]),
+        "emboss1" : np.array([
+            [0, 0, 0, 0, 0],
+            [0, -2, -1, 0, 0],
+            [0, -1, 1, 1, 0],
+            [0, 0, 1, 2, 0],
+            [0, 0, 0, 0, 0]
+        ]),
+        "emboss2" : np.array([
+            [0, 0, 0, 0, 0],
+            [0, 2, 1, 0, 0],
+            [0, 1, -1, -1, 0], 
+            [0, 0, -1, -2, 0],
+            [0, 0, 0, 0, 0]
+        ])
+    }
+
+    if key in kernels:
+        return kernels[key]
+    else:
+        raise ValueError(f"Kernel \"{key}\" not found.")
+
  
 # initialize ImageJ
 ij = imagej.init('sc.fiji:fiji', mode='interactive')
@@ -47,9 +89,9 @@ dataset_blur = ij.op().filter().gauss(dataset, 5.0)
 img_sub = (dataset - dataset_blur)
 
 # get kernels
-emboss1 = t.image.Filter.get_kernel('emboss1')
-emboss2 = t.image.Filter.get_kernel('emboss2')
-sharp = t.image.Filter.get_kernel('sharp')
+emboss1 = get_kernel('emboss1')
+emboss2 = get_kernel('emboss2')
+sharp = get_kernel('sharp')
 
 # convolve stack with a kernel
 img_sub_blur = ij.op().filter().gauss(img_sub, 1.5)
