@@ -1,7 +1,7 @@
+from locale import THOUSEP
 import imagej
 import scyjava as sj
 import numpy as np
-import tooled as t
 import code
 
 def convolve_stack(kernel: np.ndarray, image):
@@ -27,6 +27,7 @@ def fill_holes_stack(image):
 
     fill_stack = Views.concatenate(2, fill_results)
     return fill_stack
+
 
 def get_kernel(key: str) -> np.ndarray:
     kernels = {
@@ -83,7 +84,7 @@ Views = sj.jimport('net.imglib2.view.Views')
 
 # start UI
 ij.ui().showUI()
-dataset = ij.io().open('nuclei/nuclei_data.tif')
+dataset = ij.io().open('/home/edward/Documents/workspaces/scratch/3d_seg_challange/nuclei/nuclei_3.tif')
 dataset = ij.op().convert().int32(dataset)
 dataset_blur = ij.op().filter().gauss(dataset, 5.0)
 img_sub = (dataset - dataset_blur)
