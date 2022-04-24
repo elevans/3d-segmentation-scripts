@@ -1,27 +1,30 @@
+import os
 import imagej
 import scyjava as sj
 import numpy as np
-import os
-import code # TODO: remove after debugging
 from typing import List
 
 # initialize ImageJ
-ij = imagej.init("/home/edward/Documents/software/fiji/", mode='interactive')
+ij = imagej.init("sc.fiji:fiji", mode='interactive')
 print(f"ImageJ version: {ij.getVersion()}")
 
 # get additional ImageJ2 resources
 IJ = sj.jimport('ij.IJ')
 ImagePlus = sj.jimport('ij.ImagePlus')
+Dataset = sj.jimport('net.imagej.Dataset')
 HyperSphereShape = sj.jimport('net.imglib2.algorithm.neighborhood.HyperSphereShape')
 Views = sj.jimport('net.imglib2.view.Views')
 
-def get_path():
-    #return input("Enter directory:")
-    return "/home/edward/Documents/workspaces/scratch/3d_seg_challange/nuclei/"
+def get_path(direction: str):
+    if direction == "input":
+        return input("Enter input directory:")
+    if direction == "output":
+        return input("Enter output directory:")
 
 
 def img_to_imageplus(img):
     return ij.convert().convert(ij.dataset().create(img), ImagePlus)
+
 
 def convolve_stack(kernel: np.ndarray, image):
     # convolve each slice, append list, concatenate slices into new stack
@@ -37,8 +40,9 @@ def convolve_stack(kernel: np.ndarray, image):
 
 
 def segment():
-    path = get_path()
-    file_list = os.listdir(path=path)
+    input_path = get_path('input')
+    output_path = get_path('output')
+    file_list = os.listdir(path=input_path)
     mean_radius = HyperSphereShape(5)
     erode_shape = HyperSphereShape(4)
     sharpen_kernel = np.array([
@@ -47,9 +51,23 @@ def segment():
             [0, -1, 5, -1, 0],
             [0, 0, -1, 0, 0],
             [0, 0, 0, 0, 0]])
+    results_table_macro = """
+    selectWindow("Statistics for MASK_dist-watershed");
+    X = Table.getColumn("X");
+    Y = Table.getColumn("Y");
+    Z = Table.getColumn("Z");
+    IntDen = Table.getColumn("IntDen");
+    Volume = Table.getColumn("Volume (pixel^3)");
+    Table.create("3D-Segmentation-Results");
+    Table.setColumn("X", X);
+    Table.setColumn("Y", Y);
+    Table.setColumn("Z", Z);
+    Table.setColumn("IntDen", IntDen);
+    Table.setColumn("Volume (pixel^3)", Volume);
+    """
 
     for i in range(len(file_list)):
-        dataset_src = ij.io().open(path + file_list[i])
+        dataset_src = ij.io().open(input_path + file_list[i])
         dataset_src = ij.op().convert().int32(dataset_src) # convert to 32-bit
         dataset_mean = dataset_src.copy()
         dataset_mean_out = ij.dataset().create(dataset_mean) # create an output dataset
@@ -65,10 +83,21 @@ def segment():
         imp_erode.show()
         IJ.run("Re-order Hyperstack ...", "channels=[Frames (t)] slices=[Slices (z)] frames=[Channels (c)]")
         IJ.run("Distance Transform Watershed 3D", "distances=[Borgefors (3,4,5)] output=[32 bits] normalize dynamic=2 connectivity=6")
-        ij.ui().showUI()
-        breakpoint()
+        imp_watershed = ij.WindowManager.getImage("dist-watershed")
+        IJ.setAutoThreshold(imp_watershed, "Default dark stack")
+        IJ.setThreshold(imp_watershed, 0.01, 255)
+        IJ.run("Convert to Mask", "method=Default background=Dark black create")
+        imp_mask = ij.WindowManager.getImage("MASK_dist-watershed")
+        IJ.run(imp_mask, "Options...", "iterations=1 count=1 black edm=8-bit do=Erode stack")
+        # save binary mask
+        IJ.save(imp_mask, output_path + file_list[i] + "-BinaryStack.tif")
+        IJ.run(imp_mask, "3D Objects Counter", "threshold=128 slice=50 min.=10 max.=6656400 exclude_objects_on_edges surfaces statistics summary")
+        imp_surf_map = ij.WindowManager.getImage("Surface map of MASK_dist-watershed")
+        IJ.save(imp_surf_map, output_path + file_list[i] + "-SurfaceMap.tif")
+        ij.py.run_macro(results_table_macro)
+        results_table = ij.ResultsTable.getResultsTable("3D-Segmentation-Results")
+        results_table.saveAs(output_path + file_list[i] + "-Results.csv")
+        IJ.run("Close All")
+
 
 segment()
-
-# TODO: remove after debugging
-code.interact(local=locals())
