@@ -26,6 +26,7 @@ def img_to_imageplus(img):
 
 
 def segment():
+    # get input and output path
     input_path = get_path('input')
     output_path = get_path('output')
     file_list = os.listdir(path=input_path)
@@ -44,20 +45,36 @@ def segment():
     """
 
     for i in range(len(file_list)):
+        # arguments for the results_table_macro
         args = {
             'imageTitle': file_list[i]
             }
+
+        # open image data
         dataset_src = ij.io().open(input_path + file_list[i])
+
+        # apply renyiEntropy threshold and convert to ImagePlus for the
+        # 3D objects counter plugin
         img_thres = ij.op().threshold().renyiEntropy(dataset_src)
         imp_thres = img_to_imageplus(img_thres)
         imp_thres.show()
+
+        # the re-order the ImagePlus dimensions
         IJ.run("Re-order Hyperstack ...", "channels=[Slices (z)] slices=[Channels (c)] frames=[Frames (t)]")
+
+        # get re-ordered ImagePlus, set the title and save output
         imp_thres = ij.WindowManager.getCurrentImage()
         imp_thres.setTitle(file_list[i])
         IJ.save(imp_thres, output_path + file_list[i] + "-BinaryStack.tif")
+
+        # run the 3D Objects Counter plugin
         IJ.run(imp_thres, "3D Objects Counter", "threshold=128 slice=40 min.=4 max.=19602000 exclude_objects_on_edges surfaces statistics summary")
+
+        # get surface map output and save
         imp_surf_map = ij.WindowManager.getImage(f"Surface map of MASK_{file_list[i]}")
         IJ.save(imp_surf_map, output_path + file_list[i] + "-SurfaceMap.tif")
+
+        # run the ResultsTable macro and save
         ij.py.run_macro(results_table_macro, args)
         results_table = ij.ResultsTable.getResultsTable("3D-Segmentation-Results")
         results_table.saveAs(output_path + file_list[i] + "-Results.csv")
