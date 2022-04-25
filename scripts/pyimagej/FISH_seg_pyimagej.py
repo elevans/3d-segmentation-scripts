@@ -55,7 +55,7 @@ def segment():
         imp_thres = ij.WindowManager.getCurrentImage()
         imp_thres.setTitle(file_list[i])
         IJ.save(imp_thres, output_path + file_list[i] + "-BinaryStack.tif")
-        IJ.run(imp_thres, "3D Objects Counter", "threshold=128 slice=40 min.=10 max.=19602000 exclude_objects_on_edges surfaces statistics summary")
+        IJ.run(imp_thres, "3D Objects Counter", "threshold=128 slice=40 min.=4 max.=19602000 exclude_objects_on_edges surfaces statistics summary")
         imp_surf_map = ij.WindowManager.getImage(f"Surface map of MASK_{file_list[i]}")
         IJ.save(imp_surf_map, output_path + file_list[i] + "-SurfaceMap.tif")
         ij.py.run_macro(results_table_macro, args)

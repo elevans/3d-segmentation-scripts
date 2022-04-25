@@ -33,7 +33,7 @@ function processFile(input, output, image) {
     save(output + File.separator + imageTitle + "-BinaryStack");    
 
     // Using 3D Objects Counter - calculate centroid positions and integrated intensity (i.e. integrated density) for all objects using the binary mask
-    run("3D Objects Counter", "threshold=128 slice=40 min.=10 max.=19602000 exclude_objects_on_edges surfaces statistics summary");
+    run("3D Objects Counter", "threshold=128 slice=40 min.=4 max.=19602000 exclude_objects_on_edges surfaces statistics summary");
 
     // save surface map
     selectWindow("Surface map of MASK_" + imageTitle);
