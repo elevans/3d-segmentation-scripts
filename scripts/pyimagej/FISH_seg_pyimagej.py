@@ -59,7 +59,7 @@ def segment():
         imp_thres = img_to_imageplus(img_thres)
         imp_thres.show()
 
-        # the re-order the ImagePlus dimensions
+        # re-order the ImagePlus dimensions
         IJ.run("Re-order Hyperstack ...", "channels=[Slices (z)] slices=[Channels (c)] frames=[Frames (t)]")
 
         # get re-ordered ImagePlus, set the title and save output
